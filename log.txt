@@ -1,0 +1,11 @@
+filename=[test.txt]
+header=[1]
+hufman_type=[2]
+hlit=[2]
+hdist=[10]
+hclen=[14]
+CCL=
+
+3 4 4 4 3 3 2 0 0 0 0 0 0 0 0 0 0 4 3 
+before->plies=[2], value=[6]
+before->plies=[3], value=[0]
