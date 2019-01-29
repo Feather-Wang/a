@@ -11,50 +11,9 @@
 
 #include "wqs_unzip.h"
 #include "huffmantree.h"
+#include "bitstream.h"
 
 static new_fd_count = 0;
-
-int read_bitstream(int zip_fd, unit_32_t *bits, int *bit_flag, unit_32_t *bits_temp, int *bit_flag_temp)
-{
-    int read_len = 0;
-
-    if( (*bit_flag_temp) != 0 )
-    {
-        //printf("[read_bitstream 1]->[%x][%d] [%x][%d]\n", (*bits), (*bit_flag), (*bits_temp), (*bit_flag_temp));
-        if( 32 > ((*bit_flag) + (*bit_flag_temp)) )
-        {
-            (*bits) = (*bits) | ((*bits_temp) << (*bit_flag));
-            (*bit_flag) += (*bit_flag_temp);
-            (*bits_temp) = 0;
-            (*bit_flag_temp) = 0;
-            //printf("[read_bitstream 2]->[%x][%d] [%x][%d]\n", (*bits), (*bit_flag), (*bits_temp), (*bit_flag_temp));
-        }
-        else
-        {
-            (*bits) = (*bits) | ((*bits_temp) << (*bit_flag));
-            (*bits_temp) = (*bits_temp) >> (32 - (*bit_flag));
-            (*bit_flag_temp) = (*bit_flag_temp) - (32 - (*bit_flag));
-            (*bit_flag) = 32;
-            //printf("[read_bitstream 3]->[%x][%d] [%x][%d]\n", (*bits), (*bit_flag), (*bits_temp), (*bit_flag_temp));
-            return 0;
-        }
-    }
-    read_len = read(zip_fd, bits_temp, 4);
-    if( read_len != 4 )
-    {
-        fprintf(stderr, "readfile error, read_len=[%ld] != header_local_file size[%ld] errno=[%d]\n", read_len, 4, errno);
-        return -1;
-    }
-    //printf("[read_bitstream 4]->[%x][%d] [%x][%d]\n", (*bits), (*bit_flag), (*bits_temp), (*bit_flag_temp));
-
-    (*bits) = (*bits) | ((*bits_temp) << (*bit_flag));
-    (*bit_flag_temp) = (*bit_flag);
-    (*bits_temp) = (*bits_temp) >> (32 - (*bit_flag));
-    (*bit_flag) = 32;
-    //printf("[read_bitstream 5]->[%x][%d] [%x][%d]\n", (*bits), (*bit_flag), (*bits_temp), (*bit_flag_temp));
-
-    return 0;
-}
 
 int huffman_fixed(huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)
 {
@@ -88,13 +47,9 @@ int huffman_fixed(huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)
     return 0;
 }
 
-int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pbits_temp, int *pbit_flag_temp, int hclen, int hlit, int hdist, huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)
+int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, int hdist, huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)
 {
     int index_i = 0, index_j = 0;
-    unit_32_t bits = *pbits;
-    int bit_flag = *pbit_flag;
-    unit_32_t bits_temp = *pbits_temp;
-    int bit_flag_temp = *pbit_flag_temp;
 
     unit_8_t ccl_list[19] = {0};
     huffmantree_t *huffmantree_3 = NULL;
@@ -114,9 +69,9 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
     //printf("CCL=\n");
     for(index_i = 0; index_i < (hclen+4); index_i++)
     {
-        if( bit_flag < 8 )
+        if(bitstream->bit_flag < 8 )
         {
-            ret = read_bitstream(*zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp);
+            ret = read_bitstream(*zip_fd, bitstream);
             if( 0 > ret )
             {
                 fprintf(stderr, "read_bitstream error,ret=[%d]\n", ret);
@@ -125,11 +80,11 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         }
 
         char ch = 0;
-        GET_BITS(bits, ch, 3);
+        GET_BITS(bitstream->bits, ch, 3);
+        bitstream->bit_flag -= 3;
         ccl_list[ccl_reverse[index_i]] = ch;
-        bit_flag -= 3;
 
-        //printf("bits=[%x], bit_flag=[%d] index_i=[%d], ccl_index=[%d], value=[%x]\n", bits, bit_flag, index_i, ccl_reverse[index_i], ch);
+        //printf("bits=[%x], bit_flag=[%d] index_i=[%d], ccl_index=[%d], value=[%x]\n", bitstream->bits, bitstream->bit_flag, index_i, ccl_reverse[index_i], ch);
 
     }
     for(; index_i < 19; index_i++)
@@ -177,14 +132,14 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
     while( 1 )
     {
         /*
-           printf("bits=[%x], bit_flag=[%d]\n", bits, bit_flag);
+           printf("bits=[%x], bit_flag=[%d]\n", bitstream->bits, bitstream->bit_flag);
            */
-        if( bit_flag < 8 )
+        if( bitstream->bit_flag < 8 )
         {
             /*
                printf("get read\n");
                */
-            if( 0 > read_bitstream(*zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+            if( 0 > read_bitstream(*zip_fd, bitstream) )
             {
                 fprintf(stderr, "read_bitstream error\n");
                 return -1;
@@ -195,8 +150,8 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         int value = 0, value_p = 0;
         while( 1 )
         {
-            GET_BITS(bits, ch, 1);
-            bit_flag -= 1;
+            GET_BITS(bitstream->bits, ch, 1);
+            bitstream->bit_flag -= 1;
             value_p = huffmantree_search(huffmantree_3, ch);
             //printf("%d", ch);
             if( -2 == value_p )
@@ -213,24 +168,24 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         if( 18 == value_p )
         {
             /*当检测到游程编码18时,表示后面出现了多个0，取值范围为[11-138]，所以个数是从11开始的*/
-            GET_BITS(bits, ch, 7); 
-            bit_flag -= 7;
+            GET_BITS(bitstream->bits, ch, 7); 
+            bitstream->bit_flag -= 7;
             cl_len_count += ch + 11;
             //printf("=[%d] ch = [%d]\n", value_p, ch+11);
         }
         else if( 17 == value_p )
         {
             /*当检测到游程编码17时,表示后面出现了多个0，取值范围为[3-10]，所以个数是从3开始的*/
-            GET_BITS(bits, ch, 3); 
-            bit_flag -= 3;
+            GET_BITS(bitstream->bits, ch, 3); 
+            bitstream->bit_flag -= 3;
             cl_len_count += ch + 3;
             //printf("=[%d] ch = [%d]\n", value_p, ch+3);
         }
         else if( 16 == value_p )
         {
             /*当检测到游程编码16时，表示后面重复出现了前一个数字，取值范围[3,6]，所以数字是从3开始的*/
-            GET_BITS(bits, ch, 2); 
-            bit_flag -= 2;
+            GET_BITS(bitstream->bits, ch, 2); 
+            bitstream->bit_flag -= 2;
 
             for(index_i = 0; index_i < (ch+3); index_i++)
             {
@@ -295,14 +250,14 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
     while( 1 )
     {
         /*
-           printf("bits=[%x], bit_flag=[%d]\n", bits, bit_flag);
+           printf("bits=[%x], bit_flag=[%d]\n", bitstream->bits, bitstream->bit_flag);
            */
-        if( bit_flag < 8 )
+        if( bitstream->bit_flag < 8 )
         {
             /*
                printf("get read\n");
                */
-            if( 0 > read_bitstream(*zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+            if( 0 > read_bitstream(*zip_fd, bitstream) )
             {
                 fprintf(stderr, "read_bitstream error\n");
                 return -1;
@@ -313,8 +268,8 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         int value = 0, value_p = 0;
         while( 1 )
         {
-            GET_BITS(bits, ch, 1);
-            bit_flag -= 1;
+            GET_BITS(bitstream->bits, ch, 1);
+            bitstream->bit_flag -= 1;
             value_p = huffmantree_search(huffmantree_3, ch);
             /*
                printf("[%d] value_p=[%d]\n", ch, value_p);
@@ -333,8 +288,8 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         if( 18 == value_p )
         {
             /*当检测到游程编码18时,表示后面出现了多个0，取值范围为[11-138]，所以个数是从11开始的*/
-            GET_BITS(bits, ch, 7); 
-            bit_flag -= 7;
+            GET_BITS(bitstream->bits, ch, 7); 
+            bitstream->bit_flag -= 7;
             cl_len_count += ch + 11;
             /*
                printf("[18] ch = [%d]\n", ch+11);
@@ -343,8 +298,8 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         else if( 17 == value_p )
         {
             /*当检测到游程编码17时,表示后面出现了多个0，取值范围为[3-10]，所以个数是从3开始的*/
-            GET_BITS(bits, ch, 3); 
-            bit_flag -= 3;
+            GET_BITS(bitstream->bits, ch, 3); 
+            bitstream->bit_flag -= 3;
             cl_len_count += ch + 3;
             /*
                printf("[17] ch = [%d]\n", ch+3);
@@ -353,8 +308,8 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
         else if( 16 == value_p )
         {
             /*当检测到游程编码16时，表示后面重复出现了前一个数字，取值范围[3,6]，所以数字是从3开始的*/
-            GET_BITS(bits, ch, 2); 
-            bit_flag -= 2;
+            GET_BITS(bitstream->bits, ch, 2); 
+            bitstream->bit_flag -= 2;
 
             for(index_i = 0; index_i < (ch+3); index_i++)
             {
@@ -408,11 +363,6 @@ int huffman_dynamic(int *zip_fd, unit_32_t *pbits, int *pbit_flag, unit_32_t *pb
     //printf("huffmantree_show\n");
     //huffmantree_show(*huffmantree_2, 0);
 
-    *pbits = bits;
-    *pbit_flag = bit_flag;
-    *pbits_temp = bits_temp;
-    *pbit_flag_temp = bit_flag_temp;
-
     return 0;
 }
 
@@ -426,10 +376,7 @@ int main(int argc, const char *argv[])
 
     int new_fd = 0;
 
-    unit_32_t bits = 0;
-    unit_32_t bits_temp = 0;
-    int bit_flag = 0;
-    int bit_flag_temp = 0;
+    bitstream_t bitstream;
 
     header_local_file_t header_local_file;
     bits_header_t bits_header;
@@ -438,8 +385,11 @@ int main(int argc, const char *argv[])
 
     unit_8_t zip_win[ZIP_WINDOW] = {0};
     unit_32_t index_win = 0;
-
+    
     char filename[64] = {0};
+
+    memset(&bitstream, 0x00, sizeof(bitstream));
+
     if( argc == 1 )
         sprintf(filename, "a.zip");
     else
@@ -524,29 +474,29 @@ int main(int argc, const char *argv[])
 
     /*************************************************************/
     /*开始解析压缩块*/
-    if( bit_flag < 8 )
+    if( bitstream.bit_flag < 8 )
     {
         /*
            printf("get read\n");
            */
-        if( 0 > read_bitstream(zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+        if( 0 > read_bitstream(zip_fd, &bitstream) )
         {
             fprintf(stderr, "read_bitstream error\n");
             return -1;
         }
     }
-    //printf("bits=[%x]\n", bits);
+    //printf("bits=[%x]\n", bitstream.bits);
 
     memset(&bits_header, 0x00, sizeof(bits_header));
 
     /*1. header. 获取header, 1bits*/
-    GET_BITS(bits, bits_header.header, 1);
-    bit_flag -= 1;
+    GET_BITS(bitstream.bits, bits_header.header, 1);
+    bitstream.bit_flag -= 1;
     //printf("header=[%x]\n", bits_header.header);
 
     /*2. hufman_type. 获取hufman_type, 2bits*/
-    GET_BITS(bits, bits_header.hufman_type, 2);
-    bit_flag -= 2;
+    GET_BITS(bitstream.bits, bits_header.hufman_type, 2);
+    bitstream.bit_flag -= 2;
     //printf("hufman_type=[%x]\n", bits_header.hufman_type);
 
     if( 1 == bits_header.hufman_type )
@@ -569,18 +519,18 @@ int main(int argc, const char *argv[])
     else
     {
         /*3. HLIT. 获取HLIT, 5bits*/
-        GET_BITS(bits, bits_header.hlit, 5);
-        bit_flag -= 5;
+        GET_BITS(bitstream.bits, bits_header.hlit, 5);
+        bitstream.bit_flag -= 5;
         //printf("hlit=[%d]\n",bits_header.hlit);
 
         /*4. HDIST. 获取HDIST, 5bits*/
-        GET_BITS(bits, bits_header.hdist, 5);
-        bit_flag -= 5;
+        GET_BITS(bitstream.bits, bits_header.hdist, 5);
+        bitstream.bit_flag -= 5;
         //printf("hdist=[%d]\n",bits_header.hdist);
 
         /*5. HCLEN. 获取HCLEN, 4bits*/
-        GET_BITS(bits, bits_header.hclen, 4);
-        bit_flag -= 4;
+        GET_BITS(bitstream.bits, bits_header.hclen, 4);
+        bitstream.bit_flag -= 4;
         //printf("hclen=[%d]\n",bits_header.hclen);
 
         /*
@@ -588,7 +538,7 @@ int main(int argc, const char *argv[])
         7. 获取CL1
         8. 获取CL2
         */
-        ret = huffman_dynamic(&zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp, bits_header.hclen, bits_header.hlit, bits_header.hdist, &huffmantree_1, &huffmantree_2);
+        ret = huffman_dynamic(&zip_fd, &bitstream, bits_header.hclen, bits_header.hlit, bits_header.hdist, &huffmantree_1, &huffmantree_2);
         //printf("huffman_dynamic, ret=[%d]\n", ret);
     }
 
@@ -597,10 +547,10 @@ int main(int argc, const char *argv[])
     while( 1 )
     {
         //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bits, bit_flag);
-        if( bit_flag < 15 )
+        if( bitstream.bit_flag < 15 )
         {
             //printf("get read\n");
-            if( 0 > read_bitstream(zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+            if( 0 > read_bitstream(zip_fd, &bitstream) )
             {
                 fprintf(stderr, "read_bitstream error\n");
                 return -1;
@@ -611,8 +561,8 @@ int main(int argc, const char *argv[])
         int value = 0;
         while( 1 )
         {
-            GET_BITS(bits, ch, 1);
-            bit_flag -= 1;
+            GET_BITS(bitstream.bits, ch, 1);
+            bitstream.bit_flag -= 1;
             value = huffmantree_search(huffmantree_1, ch);
 
             //printf("%d", ch);
@@ -649,11 +599,11 @@ int main(int argc, const char *argv[])
         else if( 256 < value )
         {
             //printf("=[%d]\n", value);
-            //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bits, bit_flag);
-            if( bit_flag < 15 )
+            //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bitstream.bits, bitstream.bit_flag);
+            if( bitstream.bit_flag < 15 )
             {
                 //printf("get read\n");
-                if( 0 > read_bitstream(zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+                if( 0 > read_bitstream(zip_fd, &bitstream) )
                 {
                     fprintf(stderr, "read_bitstream error\n");
                     return -1;
@@ -665,8 +615,8 @@ int main(int argc, const char *argv[])
             index_i = value - 257;
             if( array_length_bits[index_i] > 0 )
             {
-                GET_BITS(bits, ch, array_length_bits[index_i]);
-                bit_flag -= array_length_bits[index_i];
+                GET_BITS(bitstream.bits, ch, array_length_bits[index_i]);
+                bitstream.bit_flag -= array_length_bits[index_i];
                 length = array_length[index_i] + ch;
                 //printf("value=[%d] bit=[%d][%x] length=[%d]\n", value, array_length_bits[index_i], ch, length);
             }
@@ -676,11 +626,11 @@ int main(int argc, const char *argv[])
                 //printf("value=[%d] bit=[%d] length=[%d]\n", value, array_length_bits[index_i], array_length[index_i]);
             }
             
-            //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bits, bit_flag);
-            if( bit_flag < 15 )
+            //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bitstream.bits, bitstream.bit_flag);
+            if( bitstream.bit_flag < 15 )
             {
                 //printf("get read\n");
-                if( 0 > read_bitstream(zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+                if( 0 > read_bitstream(zip_fd, &bitstream) )
                 {
                     fprintf(stderr, "read_bitstream error\n");
                     return -1;
@@ -689,8 +639,8 @@ int main(int argc, const char *argv[])
 
             while( 1 )
             {
-                GET_BITS(bits, ch, 1);
-                bit_flag -= 1;
+                GET_BITS(bitstream.bits, ch, 1);
+                bitstream.bit_flag -= 1;
                 value = huffmantree_search(huffmantree_2, ch);
                 //printf("%d", ch);
                 if( -2 == value )
@@ -704,11 +654,11 @@ int main(int argc, const char *argv[])
                 }
             }
 
-            //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bits, bit_flag);
-            if( bit_flag < 15 )
+            //printf("[%s,%d] bits=[%x], bit_flag=[%d]\n", __FILE__, __LINE__, bitstream.bits, bitstream.bit_flag);
+            if( bitstream.bit_flag < 15 )
             {
                 //printf("get read\n");
-                if( 0 > read_bitstream(zip_fd, &bits, &bit_flag, &bits_temp, &bit_flag_temp) )
+                if( 0 > read_bitstream(zip_fd, &bitstream) )
                 {
                     fprintf(stderr, "read_bitstream error\n");
                     return -1;
@@ -718,8 +668,8 @@ int main(int argc, const char *argv[])
 
             if( array_distance_bits[value] > 0 )
             {
-                GET_BITS(bits, ch, array_distance_bits[value]);
-                bit_flag -= array_distance_bits[value];
+                GET_BITS(bitstream.bits, ch, array_distance_bits[value]);
+                bitstream.bit_flag -= array_distance_bits[value];
                 distance = array_distance[value] + ch;
                 //printf("=[%d] bit=[%d][%x] distance=[%d] zip_win=-------------\n%s\n------------------\n", value, array_distance_bits[value], ch, distance, zip_win);
             }
