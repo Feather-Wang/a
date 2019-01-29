@@ -21,13 +21,9 @@ array_distance_bits	wqs_unzip.h	/^static unit_16_t array_distance_bits[] = {0, 0
 array_length	wqs_unzip.h	/^static unit_16_t array_length[] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};$/;"	v
 array_length_bits	wqs_unzip.h	/^static unit_16_t array_length_bits[] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,$/;"	v
 array_unit_t	wqs_unzip.h	/^} array_unit_t;$/;"	t	typeref:struct:__anon1
-bit_flag	.wqs_unzip.c.swp	/^/;"	v
 bit_flag	bitstream.h	/^    int         bit_flag;$/;"	m	struct:bitstream_s	access:public
-bit_flag_temp	.wqs_unzip.c.swp	/^/;"	v
 bit_flag_temp	bitstream.h	/^    int         bit_flag_temp;$/;"	m	struct:bitstream_s	access:public
-bits	.wqs_unzip.c.swp	/^/;"	v
 bits	bitstream.h	/^    unit_32_t   bits;$/;"	m	struct:bitstream_s	access:public
-bits_header	.wqs_unzip.c.swp	/^/;"	v
 bits_header_s	wqs_unzip.h	/^struct bits_header_s$/;"	s
 bits_header_s::hclen	wqs_unzip.h	/^    unit_8_t hclen;$/;"	m	struct:bits_header_s	access:public
 bits_header_s::hdist	wqs_unzip.h	/^    unit_8_t hdist;$/;"	m	struct:bits_header_s	access:public
@@ -35,7 +31,6 @@ bits_header_s::header	wqs_unzip.h	/^    unit_8_t header;$/;"	m	struct:bits_heade
 bits_header_s::hlit	wqs_unzip.h	/^    unit_8_t hlit;$/;"	m	struct:bits_header_s	access:public
 bits_header_s::hufman_type	wqs_unzip.h	/^    unit_8_t hufman_type;$/;"	m	struct:bits_header_s	access:public
 bits_header_t	wqs_unzip.h	/^typedef struct bits_header_s bits_header_t;$/;"	t	typeref:struct:bits_header_s
-bits_temp	.wqs_unzip.c.swp	/^/;"	v
 bits_temp	bitstream.h	/^    unit_32_t   bits_temp;$/;"	m	struct:bitstream_s	access:public
 bitstream_s	bitstream.h	/^struct bitstream_s$/;"	s
 bitstream_s::bit_flag	bitstream.h	/^    int         bit_flag;$/;"	m	struct:bitstream_s	access:public
@@ -62,7 +57,6 @@ file_last_modification_date	wqs_unzip.h	/^    unit_16_t       file_last_modifica
 file_last_modification_date	wqs_unzip.h	/^    unit_16_t       file_last_modification_date;$/;"	m	struct:header_local_file_s	access:public
 file_last_modification_time	wqs_unzip.h	/^    unit_16_t       file_last_modification_time;$/;"	m	struct:header_central_directory_file_s	access:public
 file_last_modification_time	wqs_unzip.h	/^    unit_16_t       file_last_modification_time;$/;"	m	struct:header_local_file_s	access:public
-filename	.wqs_unzip.c.swp	/^/;"	v
 filename	wqs_unzip.h	/^    unit_8_t       *filename;$/;"	m	struct:header_central_directory_file_s	access:public
 filename	wqs_unzip.h	/^    unit_8_t       *filename;$/;"	m	struct:header_local_file_s	access:public
 filename_len	wqs_unzip.h	/^    unit_16_t       filename_len;$/;"	m	struct:header_central_directory_file_s	access:public
@@ -99,7 +93,6 @@ header_central_directory_file_s::pkware_version	wqs_unzip.h	/^    unit_16_t     
 header_central_directory_file_s::relative_offset_of_local_file_header	wqs_unzip.h	/^    unit_32_t       relative_offset_of_local_file_header;$/;"	m	struct:header_central_directory_file_s	access:public
 header_central_directory_file_s::signature	wqs_unzip.h	/^    unit_32_t       signature;$/;"	m	struct:header_central_directory_file_s	access:public
 header_central_directory_file_t	wqs_unzip.h	/^typedef struct header_central_directory_file_s header_central_directory_file_t;$/;"	t	typeref:struct:header_central_directory_file_s
-header_local_file	.wqs_unzip.c.swp	/^/;"	v
 header_local_file_s	wqs_unzip.h	/^struct header_local_file_s$/;"	s
 header_local_file_s::compress_method	wqs_unzip.h	/^    unit_16_t       compress_method;$/;"	m	struct:header_local_file_s	access:public
 header_local_file_s::crc32_mothed	wqs_unzip.h	/^    unit_32_t       crc32_mothed;$/;"	m	struct:header_local_file_s	access:public
@@ -118,8 +111,6 @@ header_local_file_t	wqs_unzip.h	/^typedef struct header_local_file_s header_loca
 hlit	wqs_unzip.h	/^    unit_8_t hlit;$/;"	m	struct:bits_header_s	access:public
 huffman_dynamic	wqs_unzip.c	/^int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, int hdist, huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)$/;"	f	signature:(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, int hdist, huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)
 huffman_fixed	wqs_unzip.c	/^int huffman_fixed(huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)$/;"	f	signature:(huffmantree_t **huffmantree_1, huffmantree_t **huffmantree_2)
-huffmantree_1	.wqs_unzip.c.swp	/^/;"	v
-huffmantree_2	.wqs_unzip.c.swp	/^/;"	v
 huffmantree_create	huffmantree.c	/^int huffmantree_create(huffmantree_t **header)$/;"	f	signature:(huffmantree_t **header)
 huffmantree_insert	huffmantree.c	/^int huffmantree_insert(huffmantree_t **node, int plies_node, int value, int plies_value)$/;"	f	signature:(huffmantree_t **node, int plies_node, int value, int plies_value)
 huffmantree_s	huffmantree.h	/^struct huffmantree_s $/;"	s
@@ -130,28 +121,19 @@ huffmantree_search	huffmantree.c	/^int huffmantree_search(huffmantree_t *header,
 huffmantree_show	huffmantree.c	/^void huffmantree_show(huffmantree_t *header, int plies)$/;"	f	signature:(huffmantree_t *header, int plies)
 huffmantree_t	huffmantree.h	/^typedef struct huffmantree_s huffmantree_t;$/;"	t	typeref:struct:huffmantree_s
 hufman_type	wqs_unzip.h	/^    unit_8_t hufman_type;$/;"	m	struct:bits_header_s	access:public
-index_i	.wqs_unzip.c.swp	/^/;"	v
-index_j	.wqs_unzip.c.swp	/^/;"	v
-index_win	.wqs_unzip.c.swp	/^/;"	v
 internal_file_attributes	wqs_unzip.h	/^    unit_16_t       internal_file_attributes;$/;"	m	struct:header_central_directory_file_s	access:public
 left	huffmantree.h	/^    struct huffmantree_s *left;$/;"	m	struct:huffmantree_s	typeref:struct:huffmantree_s::huffmantree_s	access:public
 main	wqs_unzip.c	/^int main(int argc, const char *argv[])$/;"	f	signature:(int argc, const char *argv[])
-new_fd	.wqs_unzip.c.swp	/^/;"	v
 new_fd_count	wqs_unzip.c	/^static new_fd_count = 0;$/;"	v	file:
 pkware_version	wqs_unzip.h	/^    unit_16_t       pkware_version;$/;"	m	struct:header_central_directory_file_s	access:public
 plies	wqs_unzip.h	/^    int plies;$/;"	m	struct:__anon1	access:public
 read_bitstream	bitstream.c	/^int read_bitstream(int zip_fd, bitstream_t *bitstream)$/;"	f	signature:(int zip_fd, bitstream_t *bitstream)
-read_len	.wqs_unzip.c.swp	/^/;"	v
 relative_offset_of_local_file_header	wqs_unzip.h	/^    unit_32_t       relative_offset_of_local_file_header;$/;"	m	struct:header_central_directory_file_s	access:public
-ret	.wqs_unzip.c.swp	/^/;"	v
 right	huffmantree.h	/^    struct huffmantree_s *right;$/;"	m	struct:huffmantree_s	typeref:struct:huffmantree_s::huffmantree_s	access:public
 signature	wqs_unzip.h	/^    unit_32_t       signature;$/;"	m	struct:header_central_directory_file_s	access:public
 signature	wqs_unzip.h	/^    unit_32_t       signature;$/;"	m	struct:header_local_file_s	access:public
-temp_len	.wqs_unzip.c.swp	/^/;"	v
 unit_16_t	wqs_unzip.h	/^typedef unsigned short unit_16_t;$/;"	t
 unit_32_t	wqs_unzip.h	/^typedef unsigned int unit_32_t;$/;"	t
 unit_8_t	wqs_unzip.h	/^typedef unsigned char unit_8_t;$/;"	t
 value	huffmantree.h	/^    int value;$/;"	m	struct:huffmantree_s	access:public
 value	wqs_unzip.h	/^    unit_16_t value;$/;"	m	struct:__anon1	access:public
-zip_fd	.wqs_unzip.c.swp	/^/;"	v
-zip_win	.wqs_unzip.c.swp	/^/;"	v

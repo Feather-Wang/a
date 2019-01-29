@@ -62,11 +62,14 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
 
     int cl_len_count = 0;
     int plies_max = 0;
+    
+    int value = 0, value_p = 0;
+    char ch = 0;
 
     int ret = -1;
 
     /*6. CCL. (HCLEN+4)bits, 解析CCL，获取huffman码表3*/
-    //printf("CCL=\n");
+    printf("CCL=\n");
     for(index_i = 0; index_i < (hclen+4); index_i++)
     {
         if(bitstream->bit_flag < 8 )
@@ -84,24 +87,17 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
         bitstream->bit_flag -= 3;
         ccl_list[ccl_reverse[index_i]] = ch;
 
-        //printf("bits=[%x], bit_flag=[%d] index_i=[%d], ccl_index=[%d], value=[%x]\n", bitstream->bits, bitstream->bit_flag, index_i, ccl_reverse[index_i], ch);
-
+        printf("bits=[%x], bit_flag=[%d] index_i=[%d], ccl_index=[%d], value=[%x]\n", bitstream->bits, bitstream->bit_flag, index_i, ccl_reverse[index_i], ch);
     }
     for(; index_i < 19; index_i++)
     {
         ccl_list[ccl_reverse[index_i]] = 0;
-        /*
-           printf("[%d][%x]\n", index_i, 0);
-           */
+        //printf("[%d][%x]\n", index_i, 0);
     }
-
-    /*
-    printf("\n");
 
     for(index_i = 0; index_i < 19; index_i++)
         printf("%x ", ccl_list[index_i]);
     printf("\n");
-    */
 
     /*构造huffman树码表3*/
     /*i表示层数，j表示数组下标*/
@@ -111,14 +107,17 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
         {
             if( index_i == ccl_list[index_j] )
             {
-                //printf("before->plies=[%d], value=[%d]\n", index_i, index_j);
+                printf("before->plies=[%d], value=[%d]\n", index_i, index_j);
                 huffmantree_insert(&huffmantree_3, 0, index_j, index_i);
             }
         }
     }
 
+    printf("huffmantree_show\n");
+    huffmantree_show(huffmantree_3, 0);
+
     /*7. CL1. (HLIT+2)个,这个是根据huffman码表3解析后的数字的个数，根据解析后的信息构建iteral/length码表（及huffman码表1）*/
-    //printf("CL1--------------------------------------------------------------------\n");
+    printf("CL1--------------------------------------------------------------------\n");
     cl1_list = malloc(sizeof(array_unit_t)*(hlit+257));
     if( NULL == cl1_list )
     {
@@ -131,14 +130,10 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
     plies_max = 0;
     while( 1 )
     {
-        /*
-           printf("bits=[%x], bit_flag=[%d]\n", bitstream->bits, bitstream->bit_flag);
-           */
+        printf("bits=[%x], bit_flag=[%d]\n", bitstream->bits, bitstream->bit_flag);
         if( bitstream->bit_flag < 8 )
         {
-            /*
-               printf("get read\n");
-               */
+            printf("get read\n");
             if( 0 > read_bitstream(*zip_fd, bitstream) )
             {
                 fprintf(stderr, "read_bitstream error\n");
@@ -146,14 +141,12 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             }
         }
 
-        char ch = 0;
-        int value = 0, value_p = 0;
         while( 1 )
         {
             GET_BITS(bitstream->bits, ch, 1);
             bitstream->bit_flag -= 1;
             value_p = huffmantree_search(huffmantree_3, ch);
-            //printf("%d", ch);
+            printf("%d", ch);
             if( -2 == value_p )
             {
                 fprintf(stderr, "CL1 huffmantree_search error, the huffmantree is wrong\n");
@@ -171,7 +164,7 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             GET_BITS(bitstream->bits, ch, 7); 
             bitstream->bit_flag -= 7;
             cl_len_count += ch + 11;
-            //printf("=[%d] ch = [%d]\n", value_p, ch+11);
+            printf("=[%d] ch = [%d]\n", value_p, ch+11);
         }
         else if( 17 == value_p )
         {
@@ -179,7 +172,7 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             GET_BITS(bitstream->bits, ch, 3); 
             bitstream->bit_flag -= 3;
             cl_len_count += ch + 3;
-            //printf("=[%d] ch = [%d]\n", value_p, ch+3);
+            printf("=[%d] ch = [%d]\n", value_p, ch+3);
         }
         else if( 16 == value_p )
         {
@@ -195,7 +188,7 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             }
 
             cl_len_count += ch + 3;
-            //printf("=[%d] value=[%d], ch = [%d]\n", value_p, value, ch+3);
+            printf("=[%d] value=[%d], ch = [%d]\n", value_p, value, ch+3);
         }
         else
         {
@@ -209,12 +202,12 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
                 plies_max = value;
 
             cl_len_count += 1;
-            //printf("=[%d]\n", value);
+            printf("=[%d]\n", value);
         }
 
         if( cl_len_count == (hlit+257) )
         {
-            //printf("CL1 resolve over\n");
+            printf("CL1 resolve over\n");
             break;
         }
     }
@@ -227,16 +220,16 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
         {
             if( index_i == cl1_list[index_j].plies )
             {
-                //printf("before->plies=[%d], value=[%d]\n", index_i, cl1_list[index_j].value);
+                printf("before->plies=[%d], value=[%d]\n", index_i, cl1_list[index_j].value);
                 huffmantree_insert(huffmantree_1, 0, cl1_list[index_j].value, index_i);
             }
         }
     }
-    //printf("huffmantree_show\n");
-    //huffmantree_show(*huffmantree_1, 0);
+    printf("huffmantree_show\n");
+    huffmantree_show(*huffmantree_1, 0);
 
     /*8. CL2. (HDIST+1)个,这个是根据huffman码表3解析后的数字的个数，根据解析后的信息构建distance码表（及huffman码表2）*/
-    //printf("CL2--------------------------------------------------------------------\n");
+    printf("CL2--------------------------------------------------------------------\n");
     cl2_list = malloc(sizeof(array_unit_t)*(hdist+1));
     if( NULL == cl2_list )
     {
@@ -249,14 +242,10 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
     plies_max = 0;
     while( 1 )
     {
-        /*
-           printf("bits=[%x], bit_flag=[%d]\n", bitstream->bits, bitstream->bit_flag);
-           */
+        printf("bits=[%x], bit_flag=[%d]\n", bitstream->bits, bitstream->bit_flag);
         if( bitstream->bit_flag < 8 )
         {
-            /*
-               printf("get read\n");
-               */
+            printf("get read\n");
             if( 0 > read_bitstream(*zip_fd, bitstream) )
             {
                 fprintf(stderr, "read_bitstream error\n");
@@ -264,16 +253,12 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             }
         }
 
-        char ch = 0;
-        int value = 0, value_p = 0;
         while( 1 )
         {
             GET_BITS(bitstream->bits, ch, 1);
             bitstream->bit_flag -= 1;
             value_p = huffmantree_search(huffmantree_3, ch);
-            /*
-               printf("[%d] value_p=[%d]\n", ch, value_p);
-               */
+            printf("[%d] value_p=[%d]\n", ch, value_p);
             if( -2 == value_p )
             {
                 fprintf(stderr, "CL2 huffmantree_search error, the huffmantree is wrong\n");
@@ -291,9 +276,7 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             GET_BITS(bitstream->bits, ch, 7); 
             bitstream->bit_flag -= 7;
             cl_len_count += ch + 11;
-            /*
-               printf("[18] ch = [%d]\n", ch+11);
-               */
+            printf("[18] ch = [%d]\n", ch+11);
         }
         else if( 17 == value_p )
         {
@@ -301,9 +284,7 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             GET_BITS(bitstream->bits, ch, 3); 
             bitstream->bit_flag -= 3;
             cl_len_count += ch + 3;
-            /*
-               printf("[17] ch = [%d]\n", ch+3);
-               */
+            printf("[17] ch = [%d]\n", ch+3);
         }
         else if( 16 == value_p )
         {
@@ -319,9 +300,7 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
             }
 
             cl_len_count += ch + 3;
-            /*
-               printf("[16] value = [%d], ch = [%d]\n", value, ch+3);
-               */
+            printf("[16] value = [%d], ch = [%d]\n", value, ch+3);
         }
         else
         {
@@ -335,14 +314,12 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
                 plies_max = value;
 
             cl_len_count += 1;
-            /*
-               printf("[%d]\n", value);
-               */
+            printf("[%d]\n", value);
         }
 
         if( cl_len_count == (hdist+1) )
         {
-            //printf("CL2 resolve over\n");
+            printf("CL2 resolve over\n");
             break;
         }
     }
@@ -355,13 +332,13 @@ int huffman_dynamic(int *zip_fd, bitstream_t *bitstream, int hclen, int hlit, in
         {
             if( index_i == cl2_list[index_j].plies )
             {
-                //printf("before->plies=[%d], value=[%d]\n", index_i, cl2_list[index_j].value);
+                printf("before->plies=[%d], value=[%d]\n", index_i, cl2_list[index_j].value);
                 huffmantree_insert(huffmantree_2, 0, cl2_list[index_j].value, index_i);
             }
         }
     }
-    //printf("huffmantree_show\n");
-    //huffmantree_show(*huffmantree_2, 0);
+    printf("huffmantree_show\n");
+    huffmantree_show(*huffmantree_2, 0);
 
     return 0;
 }
@@ -377,6 +354,9 @@ int main(int argc, const char *argv[])
     int new_fd = 0;
 
     bitstream_t bitstream;
+
+    unit_16_t ch = 0;
+    int value = 0;
 
     header_local_file_t header_local_file;
     bits_header_t bits_header;
@@ -476,28 +456,25 @@ int main(int argc, const char *argv[])
     /*开始解析压缩块*/
     if( bitstream.bit_flag < 8 )
     {
-        /*
-           printf("get read\n");
-           */
+        printf("get read\n");
         if( 0 > read_bitstream(zip_fd, &bitstream) )
         {
             fprintf(stderr, "read_bitstream error\n");
             return -1;
         }
     }
-    //printf("bits=[%x]\n", bitstream.bits);
 
     memset(&bits_header, 0x00, sizeof(bits_header));
 
     /*1. header. 获取header, 1bits*/
     GET_BITS(bitstream.bits, bits_header.header, 1);
     bitstream.bit_flag -= 1;
-    //printf("header=[%x]\n", bits_header.header);
+    printf("header=[%x]\n", bits_header.header);
 
     /*2. hufman_type. 获取hufman_type, 2bits*/
     GET_BITS(bitstream.bits, bits_header.hufman_type, 2);
     bitstream.bit_flag -= 2;
-    //printf("hufman_type=[%x]\n", bits_header.hufman_type);
+    printf("hufman_type=[%x]\n", bits_header.hufman_type);
 
     if( 1 == bits_header.hufman_type )
     {
@@ -521,17 +498,17 @@ int main(int argc, const char *argv[])
         /*3. HLIT. 获取HLIT, 5bits*/
         GET_BITS(bitstream.bits, bits_header.hlit, 5);
         bitstream.bit_flag -= 5;
-        //printf("hlit=[%d]\n",bits_header.hlit);
+        printf("hlit=[%d]\n",bits_header.hlit);
 
         /*4. HDIST. 获取HDIST, 5bits*/
         GET_BITS(bitstream.bits, bits_header.hdist, 5);
         bitstream.bit_flag -= 5;
-        //printf("hdist=[%d]\n",bits_header.hdist);
+        printf("hdist=[%d]\n",bits_header.hdist);
 
         /*5. HCLEN. 获取HCLEN, 4bits*/
         GET_BITS(bitstream.bits, bits_header.hclen, 4);
         bitstream.bit_flag -= 4;
-        //printf("hclen=[%d]\n",bits_header.hclen);
+        printf("hclen=[%d]\n",bits_header.hclen);
 
         /*
         6. 获取CCL
@@ -557,8 +534,6 @@ int main(int argc, const char *argv[])
             }
         }
 
-        unit_16_t ch = 0;
-        int value = 0;
         while( 1 )
         {
             GET_BITS(bitstream.bits, ch, 1);
